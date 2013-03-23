@@ -22,3 +22,5 @@ source(file.path(mainDir,"scripts","LoadObservations.R"))
 # run the analysis
 source(file.path(mainDir,"functions","theme_publish.R"))
 source(file.path(mainDir,"scripts","PlotObservations.R"))
+# create a CART model of the turbine data
+source(file.path(mainDir,"scripts","TrainRegressionTree.R"))
