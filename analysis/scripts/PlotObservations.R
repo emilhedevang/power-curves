@@ -4,23 +4,23 @@
 
 # start with some histograms of the data; let's see what we have.
 # hub-height wind speed
-d <- ggplot(data=Data) +
+d <- ggplot(data=Obs) +
   geom_histogram(aes(x=WS_HH),binwidth=1) +
   labs(x=expression(paste('Wind Speed (m ',s^{-1},')'))) + 
   labs(y='Count') +
   labs(title = 'Hub-height wind speed')
 print(d)
-ggsave(filename=file.path(mainDir,subDir,'figures','WS_Histogram.png'),
+ggsave(filename=file.path(TurbineSiteFigureDir,'WS_Histogram.png'),
        width = 3, height =2, units =c("in"), dpi =300  )
 
 # shear
-d <- ggplot(data=Data) +
+d <- ggplot(data=Obs) +
   geom_histogram(aes(x=Shear),binwidth=0.05) +
   labs(x=expression(paste('Shear (-)'))) + 
   labs(y='Count') +
   labs(title = 'Shear')
 print(d)
-ggsave(filename=file.path(mainDir,subDir,'figures','shear_Histogram.png'),
+ggsave(filename=file.path(TurbineSiteFigureDir,'shear_Histogram.png'),
        width = 3, height =2, units =c("in"), dpi =300  )
 
 
@@ -33,14 +33,14 @@ TiBinB = IEC61400_turbulence(UBinMid,'b')
 IEC61400 <- data.frame(UBinMid,TiBinA,TiBinB)
 
 d <- ggplot() +
-  geom_point(data=Data,aes(x=WS_HH,y=Ti_HH)) +
+  geom_point(data=Obs,aes(x=WS_HH,y=Ti_HH)) +
   geom_line(data=IEC61400,aes(x=UBinMid,y=TiBinA,group='a'),color='red') +
   geom_line(data=IEC61400,aes(x=UBinMid,y=TiBinB,group='b'),color='blue') +
   labs(x=expression(paste('Wind Speed (m ',s^{-1},')'))) + 
   labs(y='Ti (%)') +
   labs(title = 'Turbulence Intensity')
 print(d)
-ggsave(filename=file.path(mainDir,subDir,'figures','Ti_ScatterPlot.png'),
+ggsave(filename=file.path(TurbineSiteFigureDir,'Ti_ScatterPlot.png'),
        width = 3, height =2, units =c("in"), dpi =300  )
 
 
@@ -57,7 +57,7 @@ o <- function(x) {
   subset(x, x < quantile(x,probs = c(0.05, 0.95)[1]) | quantile(x,probs = c(0.05, 0.95)[2]) < x)
 }
 
-d <- ggplot(data=Data,aes(x = cut(WS_HH,
+d <- ggplot(data=Obs,aes(x = cut(WS_HH,
                                   breaks=seq(0.25,25.25,by=0.5),
                                   labels = seq(0.5,25,by=0.5)),
                           y=Ti_HH)) +
@@ -67,31 +67,70 @@ d <- ggplot(data=Data,aes(x = cut(WS_HH,
   labs(y='Ti (%)') +
   labs(title = 'Turbulence Intensity')
 print(d)
-ggsave(filename=file.path(mainDir,subDir,'figures','WS_Ti_Boxplot.png'),
+ggsave(filename=file.path(TurbineSiteFigureDir,'WS_Ti_Boxplot.png'),
        width = 3, height =2, units =c("in"), dpi =300  )
 
 # compare the rotor-equivalent and hub-height wind speeds
-d <- ggplot(data = Data) +
+d <- ggplot(data = Obs) +
   geom_point(aes(x=RSS,y = WS_Eq/WS_HH), color = 'blue',
              alpha=1/2) + 
   labs(y = expression(paste(U[eq]/ U[H]))) + 
   labs(x = expression(paste('RSS (',m^2,' ',s^{-2},')'))) +
   labs(title = 'Quality of Power Law Fit')
 print(d)
-ggsave(filename=file.path(mainDir,subDir,'figures','RS_WSRatio_Scatter.png'),
+ggsave(filename=file.path(TurbineSiteFigureDir,'RS_WSRatio_Scatter.png'),
        width = 3, height =2, units =c("in"), dpi =300  )
 
-
 # plot a quick power curve, cutting the turbulence intensity in 2% bins
-d <- ggplot(data=Data) + 
+d <- ggplot(data=Obs) + 
   geom_point(aes(x=WS_HH,y=Power_mean, 
-                 color = cut(Data$Ti_HH,
-                             breaks = seq(0,50,by=2),
-                             labels = paste(seq(0,48,by=2),' - ', seq(2,50,by=2)),
-                             right=TRUE)),shape =19,alpha=1/2) +
+                 color = cut(Obs$Ti_HH,
+                             breaks = seq(0,50,by=5),
+                             labels = paste(seq(0,45,by=5),' - ', seq(5,50,by=5)),
+                             right=TRUE)),shape =19,alpha=1/2,size=1) +  
   labs(colour = "Ti (%)") +
   labs(x=expression(paste('Wind Speed (m ',s^{-1},')'))) + 
-  labs(y='Power (kW)')
+  labs(y='Power (kW)') +
+  theme_publish()
 print(d)
-ggsave(filename=file.path(mainDir,subDir,'figures','WS_Power_ColoredByTi.png'),
+ggsave(filename=file.path(TurbineSiteFigureDir,'WS_Power_ColoredByTi.png'),
        width = 6, height =4, units =c("in"), dpi =300  )
+
+# plot the power produced as a function of wind speed, shear and Ti
+Obs$WS_HH_binned <- cut(Obs$WS_HH,
+                         breaks = seq(3,25,by=1),
+                         labels = paste(seq(3,24,by=1),' - ',seq(4,25,by=1)),
+                        right=TRUE)
+
+d<- ggplot(data=Obs, aes(x=Shear,y=Ti_HH, z=Power_mean)) +
+  stat_summary2d(fun=function(z) median(z,na.rm=TRUE),
+                 breaks = list(x = seq(-0.5, 0.5, by = 0.05), 
+                               y = seq(0, 50, by = 2))) +
+  facet_wrap( ~ WS_HH_binned, ncol=4) +
+  scale_fill_gradientn(colours = brewer.pal(4,"YlOrRd"))+
+  labs(fill = "Power (kW)") +
+  labs(x='Shear (-)') + 
+  labs(y='Ti (%)')  +
+  theme_publish() +
+  theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1))
+print(d)
+ggsave(filename=file.path(TurbineSiteFigureDir,'Power_ByTiShearWSBin.png'),
+       width = 6, height =8, units =c("in"), dpi =300  )
+
+# plot the Cp as a function of wind speed, shear and Ti
+Obs$CP_WS_Eq <- Obs$Power_mean* 1000 /
+  (1/2*1.225*pi*TurbineDesign$RotorDiameter^2/4*Obs$WS_Eq^3)
+d<- ggplot(data=Obs, aes(x=Shear,y=Ti_HH, z=CP_WS_Eq)) +
+  stat_summary2d(fun=function(z) median(z,na.rm=TRUE),
+                 breaks = list(x = seq(-0.5, 0.5, by = 0.05), 
+                               y = seq(0, 50, by = 2))) +
+  facet_wrap( ~ WS_HH_binned, ncol=4) +
+  scale_fill_gradientn(colours = brewer.pal(4,"YlOrRd"))+
+  labs(fill = "Cp (-)") +
+  labs(x='Shear (-)') + 
+  labs(y='Ti (%)') +
+  theme_publish() +
+  theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1))
+print(d)
+ggsave(filename=file.path(TurbineSiteFigureDir,'Cp_ByTiShearWSBin.png'),
+       width = 6, height =8, units =c("in"), dpi =300  )

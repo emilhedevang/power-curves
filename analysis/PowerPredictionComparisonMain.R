@@ -6,24 +6,19 @@ rm(list=ls())
 # define working directory
 mainDir <- "~/Documents/projects/PowerSpaces_local/prestudy/papers/method_comparison/data"
 # define the data file that we will read in
-DataFile <- "PowerSpacesII.csv"
-DataName <- "WindPACT1500kW"
+TurbineName <- "WindPACT1500kW" # we will look for this directory in mainDir
+TurbineFile <- "WindPACT1500kW.txt"
+ObservationsFile <- "PowerSpacesII.csv" # we will look for this directory in mainDir/TurbineName
 
-### ---- END OF VARIABLES ---- ###
-
-# load packages
-library('ggplot2')
-library('RColorBrewer')
-
-# create a directory to host the figures etc that we will create
-subDir <- DataName
-dir.create(file.path(mainDir, subDir), showWarnings = FALSE)
-dir.create(file.path(mainDir, subDir,'figures'), showWarnings = FALSE)
-setwd(file.path(mainDir))
-
-# read the data
-Data <- read.csv(file=file.path(mainDir,DataFile),header=TRUE,sep=",")
-Data$DataName <- DataName
-
-# run the various scripts that produce our plots
+### END OF VARIABLES ###
+### START OF ANALYSIS ###
+# prepare the work space
+source(file.path(mainDir,"scripts","LoadPackages.R"))
+source(file.path(mainDir,"scripts","PrepareDirectories.R"))
+# load the information about the turbine
+source(file.path(mainDir,"scripts","LoadTurbineFile.R"))
+# load the observations data
+source(file.path(mainDir,"scripts","LoadObservations.R"))
+# run the analysis
+source(file.path(mainDir,"functions","theme_publish.R"))
 source(file.path(mainDir,"scripts","PlotObservations.R"))

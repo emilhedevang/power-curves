@@ -1,0 +1,7 @@
+TipSpeedRatio = 7
+MaxRPM = 21.9
+CutInWindSpeed = 3
+RatedWindSpeed = 11.5
+CutOutWindSpeed = 27.6
+RotorDiameter = 70
+HubHeight = 84.288
