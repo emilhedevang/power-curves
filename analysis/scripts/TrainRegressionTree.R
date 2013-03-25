@@ -3,21 +3,19 @@
 
 # note that we installed the randomForest package in LoadPackages.R
 
-# Need the Operating Region to make the model work
-Obs$TurbineOpRegion <- as.factor(as.numeric(Obs$WS_Eq > TurbineDesign$RatedWindSpeed) + 1)
-
 # create the model from the data
 # set a random seed so that we have repeatable results
 set.seed(1)
-TurbineCART <- randomForest(Power_mean ~ WS_Eq + Ti_HH + Shear + TurbineOpRegion,
-                            data=Obs,
+# train the random forest model using the training data set
+TurbineModel.CART <- randomForest(Power_mean ~ WS_Eq + Ti_HH + Shear + TurbineOpRegion,
+                            data=Obs.train,
                             ntree=500,
                             importance=TRUE)
-print(TurbineCART) # view results 
-importance(TurbineCART) # importance of each predictor
+print(TurbineModel.CART) # view results 
+importance(TurbineModel.CART) # importance of each predictor
 
 # look at how the model improves with number of trees
-plot(TurbineCART)
+plot(TurbineModel.CART)
 
 # define a function to plot the dendogram of one tree, based on script at
 # http://stats.stackexchange.com/questions/2344/best-way-to-present-a-random-forest-in-a-publication
@@ -48,8 +46,6 @@ to.dendrogram <- function(dfrep,rownum=1,height.increment=0.1){
   return(rval)
 }
 
-tree <- getTree(TurbineCART,2,labelVar=TRUE)
-
-d <- to.dendrogram(tree)
+d <- to.dendrogram(getTree(TurbineModel.CART,2,labelVar=TRUE))
 str(d)
 plot(d,center=TRUE,leaflab='none',edgePar=list(t.cex=1,p.col=NA,p.lty=0))

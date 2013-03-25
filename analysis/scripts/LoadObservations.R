@@ -31,3 +31,6 @@ for(Vari in seq(1,NROW(VarList),by=1))
     cat(paste("...ERORR: did not find column ", VarLongName[Vari], ", (", VarList[Vari], ")\n",sep=""));
   }
 }
+
+# Finally get the operating region
+Obs$TurbineOpRegion <- as.factor(as.numeric(Obs$WS_Eq > TurbineDesign$RatedWindSpeed) + 1)
