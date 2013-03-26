@@ -12,7 +12,10 @@ tmp.test <- cbind(tmp.test,
 # Get the results for all trees so we can estimate the dispersion for each set 
 # of inputs
 rf <- predict(TurbineModel.CART,
-              newdata = Obs.test,
+              newdata = data.frame('WS_Eq' = Obs.test$WS_Eq,
+                                   'Ti_HH' = Obs.test$Ti_HH,
+                                   'Shear' = Obs.test$Shear,
+                                   'TurbineOpRegion' = Obs.test$TurbineOpRegion),
               type= "response",
               predict.all=TRUE)
 tmp.test$ML_P_pred <-apply(rf$individual,1,mean)
