@@ -28,12 +28,14 @@ source(file.path(mainDir,"scripts","PlotObservations.R"))
 # divide data in to training and testing data
 source(file.path(mainDir,"scripts","SplitObservationsTrainingTesting.R"))
 # create a machine learning model of the turbine data
-source(file.path(mainDir,"scripts","TrainRegressionTree.R"))
-# TO DO: create a power curve model of the turbine data
+source(file.path(mainDir,"scripts","TrainRegressionTree.R"),echo=FALSE)
+# create a power curve model of the turbine data
+source(file.path(mainDir,"scripts","TrainMethodofBinning.R"),echo=FALSE)
 
 # TO DO: create a model of the turbine data using Emil's method
 
-# TO DO: test the different models using the testing data set
+# TO FIX: test the different models using the testing data set
+source(file.path(mainDir,"scripts","TestMethods.R"),echo=FALSE)
 
 # TO DO: compare model dispersion with observed dispersion
 

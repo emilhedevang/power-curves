@@ -34,3 +34,6 @@ for(Vari in seq(1,NROW(VarList),by=1))
 
 # Finally get the operating region
 Obs$TurbineOpRegion <- as.factor(as.numeric(Obs$WS_Eq > TurbineDesign$RatedWindSpeed) + 1)
+
+# tidy up, leaving only the things we actually want
+rm(Vari, VarList, VarLongName)

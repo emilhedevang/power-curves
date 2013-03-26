@@ -8,44 +8,13 @@
 set.seed(1)
 # train the random forest model using the training data set
 TurbineModel.CART <- randomForest(Power_mean ~ WS_Eq + Ti_HH + Shear + TurbineOpRegion,
-                            data=Obs.train,
-                            ntree=500,
-                            importance=TRUE)
+                                  data = Obs.train,
+                                  replace = TRUE,
+                                  ntree=100,
+                                  importance=TRUE)
 print(TurbineModel.CART) # view results 
 importance(TurbineModel.CART) # importance of each predictor
 
 # look at how the model improves with number of trees
 plot(TurbineModel.CART)
-
-# define a function to plot the dendogram of one tree, based on script at
-# http://stats.stackexchange.com/questions/2344/best-way-to-present-a-random-forest-in-a-publication
-
-to.dendrogram <- function(dfrep,rownum=1,height.increment=0.1){
-  
-  if(dfrep[rownum,'status'] == -1){
-    rval <- list()
-    
-    attr(rval,"members") <- 1
-    attr(rval,"height") <- 0.0
-    attr(rval,"label") <- dfrep[rownum,'prediction']
-    attr(rval,"leaf") <- TRUE
-    
-  }else{
-    left <- to.dendrogram(dfrep,dfrep[rownum,'left daughter'],height.increment)
-    right <- to.dendrogram(dfrep,dfrep[rownum,'right daughter'],height.increment)
-    rval <- list(left,right)
-    
-    attr(rval,"members") <- attr(left,"members") + attr(right,"members")
-    attr(rval,"height") <- max(attr(left,"height"),attr(right,"height")) + height.increment
-    attr(rval,"leaf") <- FALSE
-    attr(rval,"edgetext") <- dfrep[rownum,'split var']
-  }
-  
-  class(rval) <- "dendrogram"
-  
-  return(rval)
-}
-
-d <- to.dendrogram(getTree(TurbineModel.CART,2,labelVar=TRUE))
-str(d)
-plot(d,center=TRUE,leaflab='none',edgePar=list(t.cex=1,p.col=NA,p.lty=0))
+varImpPlot(TurbineModel.CART)

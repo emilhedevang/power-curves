@@ -11,7 +11,8 @@ d <- ggplot(data=Obs.temp) +
   geom_histogram(aes(x=WS_HH),binwidth=1) +
   labs(x=expression(paste('Wind Speed (m ',s^{-1},')'))) + 
   labs(y='Count') +
-  labs(title = 'Hub-height wind speed')
+  labs(title = 'Distribution of Hub-height wind speed')+
+  theme_publish()
 print(d)
 ggsave(filename=file.path(TurbineSiteFigureDir,'WS_Histogram.png'),
        width = 3, height =2, units =c("in"), dpi =300  )
@@ -21,7 +22,8 @@ d <- ggplot(data=Obs.temp) +
   geom_histogram(aes(x=Shear),binwidth=0.05) +
   labs(x=expression(paste('Shear (-)'))) + 
   labs(y='Count') +
-  labs(title = 'Shear')
+  labs(title = 'Distribution of Shear') +
+  theme_publish()
 print(d)
 ggsave(filename=file.path(TurbineSiteFigureDir,'shear_Histogram.png'),
        width = 3, height =2, units =c("in"), dpi =300  )
@@ -41,7 +43,8 @@ d <- ggplot() +
   geom_line(data=IEC61400,aes(x=UBinMid,y=TiBinB,group='b'),color='blue') +
   labs(x=expression(paste('Wind Speed (m ',s^{-1},')'))) + 
   labs(y='Ti (%)') +
-  labs(title = 'Turbulence Intensity')
+  labs(title = 'Distribution of Turbulence Intensity') +
+  theme_publish()
 print(d)
 ggsave(filename=file.path(TurbineSiteFigureDir,'Ti_ScatterPlot.png'),
        width = 3, height =2, units =c("in"), dpi =300  )
@@ -68,7 +71,8 @@ d <- ggplot(data=Obs.temp,aes(x = cut(WS_HH,
   stat_summary(fun.y = o, geom="point") + 
   labs(x=expression(paste('Wind Speed (m ',s^{-1},')'))) + 
   labs(y='Ti (%)') +
-  labs(title = 'Turbulence Intensity')
+  labs(title = 'Turbulence Intensity') +
+  theme_publish()
 print(d)
 ggsave(filename=file.path(TurbineSiteFigureDir,'WS_Ti_Boxplot.png'),
        width = 3, height =2, units =c("in"), dpi =300  )
@@ -79,7 +83,8 @@ d <- ggplot(data = Obs.temp) +
              alpha=1/2) + 
   labs(y = expression(paste(U[eq]/ U[H]))) + 
   labs(x = expression(paste('RSS (',m^2,' ',s^{-2},')'))) +
-  labs(title = 'Quality of Power Law Fit')
+  labs(title = 'Quality of Power Law Fit') +
+  theme_publish()
 print(d)
 ggsave(filename=file.path(TurbineSiteFigureDir,'RS_WSRatio_Scatter.png'),
        width = 3, height =2, units =c("in"), dpi =300  )
@@ -116,9 +121,10 @@ d<- ggplot(data=Obs.temp, aes(x=Shear,y=Ti_HH, z=Power_mean)) +
                            y = TiBinEdges)) +
   facet_wrap( ~ WS_HH_binned, ncol=4) +
   scale_fill_gradientn(colours = brewer.pal(4,"YlOrRd"))+
-  labs(fill = "Power (kW)") +
+  labs(fill = "Count (-)") +
   labs(x='Shear (-)') + 
   labs(y='Ti (%)')  +
+  labs(title='Number of wind speed, shear and turbulence observations per bin') +
   theme_publish() +
   theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1))
 print(d)
@@ -135,6 +141,7 @@ d<- ggplot(data=Obs.temp, aes(x=Shear,y=Ti_HH, z=Power_mean)) +
   labs(fill = "Power (kW)") +
   labs(x='Shear (-)') + 
   labs(y='Ti (%)')  +
+  labs(title='Effect of wind speed, shear and turbulence on power') +
   theme_publish() +
   theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1))
 print(d)
@@ -151,6 +158,7 @@ d<- ggplot(data=Obs.temp, aes(x=Shear,y=Ti_HH, z=Power_mean)) +
   labs(fill = expression(paste(sigma," Power (kW)",sep = ""))) +
   labs(x='Shear (-)') + 
   labs(y='Ti (%)')  +
+  labs(title='Effect of wind speed, shear and turbulence on power dispersion') +
   theme_publish() +
   theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1))
 print(d)
@@ -169,8 +177,12 @@ d<- ggplot(data=Obs.temp, aes(x=Shear,y=Ti_HH, z=CP_WS_Eq)) +
   labs(fill = "Cp (-)") +
   labs(x='Shear (-)') + 
   labs(y='Ti (%)') +
+  labs(title='Effect of wind speed, shear and turbulence on Cp') +
   theme_publish() +
   theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1))
 print(d)
 ggsave(filename=file.path(TurbineSiteFigureDir,'Cp_ByTiShearWSBin.png'),
        width = 6, height =8, units =c("in"), dpi =300  )
+
+# tidy up, leaving only the things we actually want
+rm(Obs.temp,f,o,d,AlphaBinEdges,TiBinA,TiBinB,TiBinEdges,IEC61400,UBinMid)
