@@ -178,103 +178,163 @@ hljs.initHighlightingOnLoad();
 </head>
 
 <body>
-<pre><code class="r"># script based on examples at
-# http://www.statmethods.net/advstats/cart.html and
-# http://stat-www.berkeley.edu/users/breiman/RandomForests/
+<pre><code class="r"># test the prediction of power using various methods
 
-# note that we installed the randomForest package in LoadPackages.R
-
-# create the model from the data set a random seed so that we have
-# repeatable results
-set.seed(1)
-# train the random forest model using the training data set
-model.CART &lt;- randomForest(x = data.frame(ws = observations.train$ws.eq, ti = observations.train$ti.hh, 
-    shear = observations.train$shear, turbine.operating.region = observations.train$turbine.operating.region), 
-    y = observations.train$power.mean.observed, replace = TRUE, type = &quot;regression&quot;, 
-    mtry = 2, ntree = 100, importance = TRUE)
+# get our testing data
+tmp.test &lt;- observations.test
 </code></pre>
 
-<pre><code>## Error: could not find function &quot;randomForest&quot;
+<pre><code>## Error: object &#39;observations.test&#39; not found
 </code></pre>
 
-<pre><code class="r"># The key to a successful model is to increase mtry to at least 2.  the
-# maximum value is the number of variables in the data set.  otherwise
-# only 1 variable is tried at each node (Duh).  The only problem with mtry
-# = NROW(x) is that the model may be over-fitted.  set a switch to say we
-# did it
-projectdata.switches$TrainedCART &lt;- TRUE
+<pre><code class="r"># and create lists to dump colours into
+tmp.datasets &lt;- list()
+tmp.colors &lt;- list()
+
+# predict power output with different methods ---- 1. IEC method of
+# binning
+if (projectdata.switches$TrainedBinnedPowerCurve) {
+    # Get the results for all observations
+    prediction.IECbinning &lt;- cbind(tmp.test, predict.IECBinning(model.IECbinning, 
+        xout = tmp.test$ws.eq))
+
+    # save some information about this data
+    tmp.datasets &lt;- c(tmp.datasets, `Method of Binning` = &quot;prediction.IECbinning&quot;)
+    tmp.colors &lt;- c(tmp.colors, `Method of Binning` = &quot;black&quot;)
+}
 </code></pre>
 
 <pre><code>## Error: object &#39;projectdata.switches&#39; not found
 </code></pre>
 
 <pre><code class="r">
-# look at how the model improves with number of trees
-d &lt;- ggplot(data = data.frame(trees = seq(1, 100, by = 1), mse = model.CART$mse), 
-    aes(x = trees, y = mse)) + geom_line() + labs(x = &quot;trees&quot;) + labs(y = &quot;Mean Square Error&quot;) + 
-    labs(title = &quot;Accuracy versus number of trees&quot;)
+# 2. Random Forest method
+if (projectdata.switches$TrainedCART) {
+    # Get the results for all trees so we can estimate the dispersion for each
+    # set of inputs
+    newdata = data.frame(ws = observations.test$ws.eq, ti = observations.test$ti.hh, 
+        shear = observations.test$shear, turbine.operating.region = observations.test$turbine.operating.region)
+    rf &lt;- predict(model.CART, newdata = newdata, type = &quot;response&quot;, predict.all = TRUE)
+    # get the data
+    prediction.CART &lt;- tmp.test
+    prediction.CART$power.mean.predicted &lt;- apply(rf$individual, 1, mean)
+    prediction.CART$power.sdev.predicted &lt;- apply(rf$individual, 1, sd)
+
+    # save some information about this data
+    tmp.datasets &lt;- c(tmp.datasets, `Method Learning` = &quot;prediction.CART&quot;)
+    tmp.colors &lt;- c(tmp.colors, `Machine Learning` = &quot;blue&quot;)
+    # tidy up
+    rm(rf)
+}
+</code></pre>
+
+<pre><code>## Error: object &#39;projectdata.switches&#39; not found
+</code></pre>
+
+<pre><code class="r">
+# figure out what data actually arrived after all that
+colors &lt;- as.character(tmp.colors, names = names(tmp.colors))
+names(colors) &lt;- names(tmp.colors)
+
+# Results ----
+
+## Compare the power curves from the methods
+d1 &lt;- ggplot() + geom_point(data = prediction.IECbinning, aes(x = ws.eq, y = power.mean.predicted, 
+    color = &quot;Method of Binning&quot;)) + geom_point(data = prediction.CART, aes(x = ws.eq, 
+    y = power.mean.predicted, color = &quot;Machine Learning&quot;)) + scale_colour_manual(name = &quot;Method&quot;, 
+    values = colors) + labs(x = &quot;Wind Speed&quot;) + labs(y = &quot;Predicted power&quot;) + 
+    labs(title = &quot;Turbine power curve&quot;)
 </code></pre>
 
 <pre><code>## Error: could not find function &quot;ggplot&quot;
 </code></pre>
 
-<pre><code class="r">print(d)
+<pre><code class="r">print(d1)
 </code></pre>
 
-<pre><code>## Error: object &#39;d&#39; not found
-</code></pre>
-
-<pre><code class="r">ggsave(filename = file.path(projectfiles.locations$FigureDir, &quot;CART_accuracy.png&quot;), 
-    width = 6, height = 4, units = c(&quot;in&quot;), dpi = 300)
-</code></pre>
-
-<pre><code>## Error: could not find function &quot;ggsave&quot;
+<pre><code>## Error: object &#39;d1&#39; not found
 </code></pre>
 
 <pre><code class="r">
-# find out how important each variable is
-ImpData = data.frame(importance(model.CART))
-</code></pre>
-
-<pre><code>## Error: could not find function &quot;importance&quot;
-</code></pre>
-
-<pre><code class="r">ImpData$ID &lt;- row.names(ImpData)
-</code></pre>
-
-<pre><code>## Error: object &#39;ImpData&#39; not found
-</code></pre>
-
-<pre><code class="r"># plot a varImpPlot(model.CART)
-d &lt;- ggplot(data = ImpData, aes(x = ID, y = X.IncMSE)) + geom_bar(stat = &quot;identity&quot;) + 
-    labs(x = &quot;Data&quot;) + labs(y = &quot;Importance&quot;) + labs(title = &quot;Contribution of data to CART model&quot;)
+## Compare the power predicted using the methods we have
+d1 &lt;- ggplot(data = NULL) + geom_point(data = prediction.IECbinning, aes(x = power.mean.predicted, 
+    y = power.mean.observed, color = &quot;Method of Binning&quot;)) + geom_point(data = prediction.CART, 
+    aes(x = power.mean.predicted, y = power.mean.observed, color = &quot;Machine Learning&quot;)) + 
+    scale_colour_manual(name = &quot;Method&quot;, values = colors) + labs(x = &quot;Predicted power&quot;) + 
+    labs(y = &quot;Observed power&quot;) + labs(title = &quot;Turbine power&quot;)
 </code></pre>
 
 <pre><code>## Error: could not find function &quot;ggplot&quot;
 </code></pre>
 
-<pre><code class="r">print(d)
+<pre><code class="r">print(d1)
 </code></pre>
 
-<pre><code>## Error: object &#39;d&#39; not found
-</code></pre>
-
-<pre><code class="r">ggsave(filename = file.path(projectfiles.locations$FigureDir, &quot;CART_contribution.png&quot;), 
-    width = 6, height = 4, units = c(&quot;in&quot;), dpi = 300)
-</code></pre>
-
-<pre><code>## Error: could not find function &quot;ggsave&quot;
+<pre><code>## Error: object &#39;d1&#39; not found
 </code></pre>
 
 <pre><code class="r">
-# tidy up
-rm(ImpData, d)
+# Compare the errors ---- plot actual error versus predicted
+d2 &lt;- ggplot(data = NULL) + geom_point(data = prediction.IECbinning, aes(x = power.sdev.predicted, 
+    y = power.mean.predicted - power.mean.observed, color = &quot;Method of Binning&quot;)) + 
+    geom_point(data = prediction.CART, aes(x = power.sdev.predicted, y = power.mean.predicted - 
+        power.mean.observed, color = &quot;Machine Learning&quot;)) + scale_colour_manual(name = &quot;Method&quot;, 
+    values = colors) + labs(x = &quot;Predicted standard deviation&quot;) + labs(y = &quot;Actual error&quot;) + 
+    labs(title = &quot;Prediction Errors&quot;)
 </code></pre>
 
-<pre><code>## Warning: object &#39;ImpData&#39; not found
+<pre><code>## Error: could not find function &quot;ggplot&quot;
 </code></pre>
 
-<pre><code>## Warning: object &#39;d&#39; not found
+<pre><code class="r">print(d2)
+</code></pre>
+
+<pre><code>## Error: object &#39;d2&#39; not found
+</code></pre>
+
+<pre><code class="r">
+# and lets get our error metrics RMSE
+cat(&quot;\nRMSE\n&quot;)
+</code></pre>
+
+<pre><code>## 
+## RMSE
+</code></pre>
+
+<pre><code class="r">cat(&quot;Method of binning: &quot;, sqrt(mean((prediction.IECbinning$power.mean.predicted - 
+    prediction.IECbinning$power.mean.observed)^2, na.rm = TRUE)), &quot;\n&quot;)
+</code></pre>
+
+<pre><code>## Error: object &#39;prediction.IECbinning&#39; not found
+</code></pre>
+
+<pre><code class="r">cat(&quot;Machine learning: &quot;, sqrt(mean((prediction.CART$power.mean.predicted - 
+    prediction.CART$power.mean.observed)^2, na.rm = TRUE)), &quot;\n&quot;)
+</code></pre>
+
+<pre><code>## Error: object &#39;prediction.CART&#39; not found
+</code></pre>
+
+<pre><code class="r"># MAE
+cat(&quot;\nMAE\n&quot;)
+</code></pre>
+
+<pre><code>## 
+## MAE
+</code></pre>
+
+<pre><code class="r">cat(&quot;Method of binning: &quot;, mean(abs(prediction.IECbinning$power.mean.predicted - 
+    prediction.IECbinning$power.mean.observed), na.rm = TRUE), &quot;\n&quot;)
+</code></pre>
+
+<pre><code>## Error: object &#39;prediction.IECbinning&#39; not found
+</code></pre>
+
+<pre><code class="r">cat(&quot;Machine learning: &quot;, mean(abs(prediction.CART$power.mean.predicted - prediction.CART$power.mean.observed), 
+    na.rm = TRUE), &quot;\n&quot;)
+</code></pre>
+
+<pre><code>## Error: object &#39;prediction.CART&#39; not found
 </code></pre>
 
 <!-- Automatically generated by RStudio [12861c30b10411e1afa60800200c9a66] -->

@@ -1,104 +1,95 @@
-# create a function that will give the power curve
+# Train the method of binning to get a power curve----
+## create a function that will give the power curve
 IECBinning <- function(x, ...) UseMethod("IECBinning")
 
-IECBinning.default <- function(WS,P,UBinEdges)
-{
-  ## Calculate average power per wind speed bin and turn it into a table
-  # deal with inputs
-  WS <- as.numeric(WS)
-  P <- as.numeric(P)
-  UBinEdges <- as.numeric(UBinEdges)  
-  
-  # create bin labels that are the means of the bin edges
-  UBinLabels <- rep(NA, NROW(UBinEdges)-1)
-  for(UBinEdgei in seq(1,NROW(UBinEdges)-1,by=1))
-  {
-    UBinLabels[UBinEdgei] = (UBinEdges[UBinEdgei] + UBinEdges[UBinEdgei+1]) /2
-  }
-  # Allocate the observed wind speed into bins
-  WSBinned=cut(WS, breaks=UBinEdges, labels=UBinLabels )
+IECBinning.default <- function(ws, power){
+  DataBinned <- IEC61400BinByWindSpeed(ws = ws,
+                                       y = power)
   
   # now create the power curve
-  BinLowerWS <- rep(NA, NROW(UBinEdges)-1)
-  BinCenterWS <- BinLowerWS
-  BinUpperWS <- BinLowerWS
-  PowerMean <- BinLowerWS
-  PowerSd <- BinLowerWS
+  ws.mean <- DataBinned$ws.mean
+  power.mean <- DataBinned$y.mean
+  power.sdev <- DataBinned$y.sdev
   
-  for(UBinEdgei in seq(1,NROW(UBinEdges)-1,by=1))
-  {
-    BinLowerWS[UBinEdgei] = UBinEdges[UBinEdgei]    
-    BinCenterWS[UBinEdgei] = (UBinEdges[UBinEdgei] + UBinEdges[UBinEdgei+1]) /2
-    BinUpperWS[UBinEdgei] = UBinEdges[UBinEdgei+1]    
-    PowerMean[UBinEdgei] = mean(P[WSBinned == UBinLabels[UBinEdgei]],
-                                na.rm=TRUE)
-    PowerSd[UBinEdgei] = sd(P[WSBinned == UBinLabels[UBinEdgei]],
-                            na.rm=TRUE)
-  }
-  PowerMean[is.nan(PowerMean)]=NA
-  PowerSd[is.nan(PowerSd)]=NA
-  
-  # Gather the data that we used to train the model
-  data <- data.frame(WS,P)
   # Create the model
-  model <- data.frame(BinLowerWS,BinCenterWS,BinUpperWS,PowerMean,PowerSd)      
-  # store the call
-  call <- match.call()
-  # return the data and model
-  list(model=model,data=data,call=call)
+  model <- data.frame(ws.mean,
+                      power.mean,
+                      power.sdev)   
+  
+  # return the model
+  return(model)
 }
 
 # now create a function to predict the power based on a wind speed observation
-predict.IECBinning <- function(Object, xout, newdata=NULL, ...)
-{
-  if(is.null(newdata))
-  {
-    P_pred <- approx(x = Object$model$BinCenterWS,
-                y = Object$model$PowerMean,
-                xout = xout,
-                method = "constant",
-                yleft = 0,
-                yright = NA,
-                ties = min)
-    rho_pred <- approx(x = Object$model$BinCenterWS,
-                     y = Object$model$PowerSd,
+predict.IECBinning <- function(Object, xout, newdata = NULL, ...){
+  if(is.null(newdata)){
+    P_pred <- approx(x = Object$ws.mean,
+                     y = Object$power.mean,
                      xout = xout,
                      method = "constant",
-                     yleft = NA,
+                     yleft = 0,
                      yright = NA,
                      ties = min)
+    rho_pred <- approx(x = Object$ws.mean,
+                       y = Object$power.sdev,
+                       xout = xout,
+                       method = "constant",
+                       yleft = NA,
+                       yright = NA,
+                       ties = min)
   }
-  list(MB_P_pred=P_pred$y,MB_rho_pred=rho_pred$y)  
+  list(power.mean.predicted = P_pred$y,
+       power.sdev.predicted = rho_pred$y) 
 }
 
-print.IECBinning <- function(x, ...)
-{
+print.IECBinning <- function(x, ...){
   cat("Call:\n")
   print(x$call)
   cat("\nModel:\n")
   print(x$model)
 }
 
-# create wind speed bins
-UBinEdges <- seq(0.25,25.25,by=0.5)
-# create our model
-TurbineModel.IECBinning <- IECBinning(Obs.train$WS_Eq,
-                                      Obs.train$Power_mean,
-                                      UBinEdges)
+# Train the power curve ----
+model.IECbinning <- IECBinning.default(ws = observations.train$ws.eq,
+                                       power = observations.train$power.mean.observed)
+# set a switch to say we did it
+projectdata.switches$TrainedBinnedPowerCurve <- TRUE
 
-# and plot the trained power curve together with the observed data
-d <- ggplot(data=Obs.train,aes(x=WS_Eq,y=Power_mean)) +
-  geom_step(data=TurbineModel.IECBinning$model,
-            aes(x=BinLowerWS,y=PowerMean,color = 'Method of Binning'),
-            size=2) + 
-  geom_point(aes(color='Observations')) +
-  scale_colour_manual(name="Power", 
-                      values=c("Method of Binning"='black',
-                               "Observations"='grey')) +  
-  labs(x=expression(paste('Wind Speed (m ',s^{-1},')'))) +
-  labs(y='Power (kW)') + 
-  theme_publish()
+# Plot the power curve ----
+## plot the trained power curve together with the observed data
+d <- ggplot() +
+  geom_line(data = IECBinning(observations.train$ws.eq,
+                              observations.train$power.mean.observed),
+            aes(x = ws.mean,
+                y = power.mean,            
+                color = "Method of Binning")) + 
+  geom_point(data = observations.train,
+             aes(x = ws.eq,
+                 y = power.mean.observed,
+                 color = "Observations"),
+             size =1,
+             alpha=0.5) +
+  scale_colour_manual(name = "Power", 
+                      values = c("Method of Binning" = 'black',
+                                 "Observations" = 'blue')) + 
+  labs(x = expression(paste('Wind Speed (m ',s^{-1},')'))) +
+  labs(y = 'Power (kW)') + 
+  labs(title = 'Power curve derived using different methods')
+# check to see if there was a reference power curve
+if (projectdata.switches$turbine.design.powercurve == TRUE){
+  d <- d + geom_line(data = turbine.design.powercurve,
+                     aes(x = ws, 
+                         y = power.mean),
+                     coclor = "Reference")
+  + scale_colour_manual(name = "Power", 
+                        values = c("Method of Binning" = 'black',
+                                   "Observations" = 'blue',
+                                   "Reference" = 'red'))  
+}
 print(d)
+ggsave(filename = file.path(projectfiles.locations$FigureDir,
+                            'TrainedBinnedPowerCurve.png'),
+       width = 6, height = 3, units = c("in"), dpi = 300 )
 
 # tidy up, leaving only the things we actually want
-rm(d,UBinEdges)
+rm(d)
